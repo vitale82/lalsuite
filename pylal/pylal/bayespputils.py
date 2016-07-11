@@ -43,7 +43,6 @@ from xml.dom import minidom
 from operator import itemgetter
 
 #related third party imports
-import h5py
 import healpy as hp
 import lalinference.cmap
 import numpy as np
@@ -743,7 +742,7 @@ class Posterior(object):
     """
     Data structure for a table of posterior samples .
     """
-    def __init__(self,commonResultsFormatData,SimInspiralTableEntry=None,inj_spin_frame='OrbitalL', injFref=100,SnglInpiralList=None,name=None,description=None,votfile=None):
+    def __init__(self,commonResultsFormatData,SimInspiralTableEntry=None,inj_spin_frame='OrbitalL', injFref=100,SnglInpiralList=None,name=None,description=None):
         """
         Constructor.
 
@@ -764,7 +763,6 @@ class Posterior(object):
         self._triggers=SnglInpiralList
         self._loglaliases=['deltalogl', 'posterior', 'logl','logL','likelihood']
         self._logpaliases=['logp', 'logP','prior','logprior','Prior','logPrior']
-        self._votfile=votfile
 
         common_output_table_header=[i.lower() for i in common_output_table_header]
 
@@ -1882,14 +1880,6 @@ class Posterior(object):
         return_val=reparsed.toprettyxml(indent="  ")
         return return_val[len('<?xml version="1.0" ?>')+1:]
 
-    def write_vot_info(self):
-      """
-      Writes the information stored in the VOTtree if there is one
-      """
-      target=VOT2HTML()
-      parser=XMLParser(target=target)
-      parser.feed(self._votfile)
-      return parser.close()
 
     #===============================================================================
     # Functions used to parse injection structure.
@@ -2051,7 +2041,7 @@ class BurstPosterior(Posterior):
     """
     Data structure for a table of posterior samples .
     """
-    def __init__(self,commonResultsFormatData,SimBurstTableEntry=None,injFref=None,SnglBurstList=None,name=None,description=None,votfile=None):
+    def __init__(self,commonResultsFormatData,SimBurstTableEntry=None,injFref=None,SnglBurstList=None,name=None,description=None):
         """
         Constructor.
 
@@ -2070,8 +2060,6 @@ class BurstPosterior(Posterior):
         self._triggers=SnglBurstList
         self._loglaliases=['posterior', 'logl','logL','likelihood', 'deltalogl']
         self._logpaliases=['logp', 'logP','prior','logprior','Prior','logPrior']
-
-        self._votfile=votfile
 
         common_output_table_header=[i.lower() for i in common_output_table_header]
 
@@ -5507,18 +5495,10 @@ class PEOutputParser(object):
     inherited by each method .
     """
     def __init__(self,inputtype):
-        if inputtype is 'mcmc_burnin':
-            self._parser=self._mcmc_burnin_to_pos
-        elif inputtype is 'ns':
-            self._parser=self._ns_to_pos
         elif inputtype is 'common':
             self._parser=self._common_to_pos
-        elif inputtype is 'fm':
-            self._parser=self._followupmcmc_to_pos
         elif inputtype is "inf_mcmc":
             self._parser=self._infmcmc_to_pos
-        elif inputtype is "xml":
-            self._parser=self._xml_to_pos
         elif inputtype == 'hdf5':
             self._parser = self._hdf5_to_pos
         else:
@@ -5836,173 +5816,12 @@ class PEOutputParser(object):
             raise RuntimeError("couldn't find line with 'cycle' in LALInferenceMCMC input")
         return runInfo[:-1],headers
 
-
-    def _mcmc_burnin_to_pos(self,files,spin=False,deltaLogL=None):
-        """
-        Parser for SPINspiral output .
-        """
-        raise NotImplementedError
-        if deltaLogL is not None:
-            pos,bayesfactor=burnin(data,spin,deltaLogL,"posterior_samples.dat")
-            return self._common_to_pos(open("posterior_samples.dat",'r'))
-
-    def _ns_to_pos(self,files,Nlive=None,Npost=None,posfilename='posterior_samples.dat'):
-        """
-        Parser for nested sampling output.
-        files : list of input NS files
-        Nlive : Number of live points
-        Npost : Desired number of posterior samples
-        posfilename : Posterior output file name (default: 'posterior_samples.dat')
-        """
-        try:
-            from lalapps.nest2pos import draw_N_posterior_many,draw_posterior_many
-        except ImportError:
-            print "Need lalapps.nest2pos to convert nested sampling output!"
-            raise
-
-        if Nlive is None:
-            raise RuntimeError("Need to specify number of live points in positional arguments of parse!")
-
-        #posfile.write('mchirp \t eta \t time \t phi0 \t dist \t RA \t dec \t
-        #psi \t iota \t likelihood \n')
-        # get parameter list
-        it = iter(files)
-
-        # check if there's a file containing the parameter names
-        parsfilename = (it.next()).strip('.gz')+'_params.txt'
-
-        if os.path.isfile(parsfilename):
-            print 'Looking for '+parsfilename
-
-            if os.access(parsfilename,os.R_OK):
-
-                with open(parsfilename,'r') as parsfile:
-                    outpars=parsfile.readline()+'\n'
-            else:
-                raise RuntimeError('Cannot open parameters file %s!'%(parsfilename))
-
-        else: # Use hardcoded CBC parameter names
-            outpars='mchirp \t eta \t time \t phi0 \t dist \t RA \t \
-            dec \t psi \t iota \t logl \n'
-
-        # Find the logL column
-        parsvec=outpars.split()
-        logLcol=-1
-        for i in range(len(parsvec)):
-            if parsvec[i].lower()=='logl':
-                logLcol=i
-        if logLcol==-1:
-            print 'Error! Could not find logL column in parameter list: %s'%(outpars)
-            raise RuntimeError
-
-        inarrays=map(np.loadtxt,files)
-        if Npost is None:
-            pos=draw_posterior_many(inarrays,[Nlive for f in files],logLcols=[logLcol for f in files])
-        else:
-            pos=draw_N_posterior_many(inarrays,[Nlive for f in files],Npost,logLcols=[logLcol for f in files])
-
-        with open(posfilename,'w') as posfile:
-
-            posfile.write(outpars)
-
-            for row in pos:
-                for i in row:
-                  posfile.write('%10.12e\t' %(i))
-                posfile.write('\n')
-
-        with open(posfilename,'r') as posfile:
-            return_val=self._common_to_pos(posfile)
-
-        return return_val
-
-    def _followupmcmc_to_pos(self,files):
-        """
-        Parser for followupMCMC output.
-        """
-        return self._common_to_pos(open(files[0],'r'),delimiter=',')
-
-
-    def _multinest_to_pos(self,files):
-        """
-        Parser for MultiNest output.
-        """
-        return self._common_to_pos(open(files[0],'r'))
-
-    def _xml_to_pos(self,infile):
-        """
-        Parser for VOTable XML Using
-        """
-        from xml.etree import ElementTree as ET
-        xmlns='http://www.ivoa.net/xml/VOTable/v1.1'
-        try:
-                register_namespace=ET.register_namespace
-        except AttributeError:
-                def register_namespace(prefix,uri):
-                    ET._namespace_map[uri]=prefix
-        register_namespace('vot',xmlns)
-        tree = ET.ElementTree()
-
-        tree.parse(infile)
-        # Find the posterior table
-        tables = tree.findall('.//{%s}TABLE'%(xmlns))
-        for table in tables:
-            if table.get('utype')=='lalinference:results:posteriorsamples':
-                return(self._VOTTABLE2pos(table))
-        for table in tables:
-          if table.get('utype')=='lalinference:results:nestedsamples':
-            nsresource=[node for node in tree.findall('{%s}RESOURCE'%(xmlns)) if node.get('utype')=='lalinference:results'][0]
-            return(self._VOTTABLE2pos(vo_nest2pos(nsresource)))
-        raise RuntimeError('Cannot find "Posterior Samples" TABLE element in XML input file %s'%(infile))
-
-    def _VOTTABLE2pos(self,table):
-        """
-        Parser for a VOT TABLE element with FIELDs and TABLEDATA elements
-        """
-        from xml.etree import ElementTree as ET
-        xmlns='http://www.ivoa.net/xml/VOTable/v1.1'
-        try:
-            register_namespace=ET.register_namespace
-        except AttributeError:
-            def register_namespace(prefix,uri):
-                ET._namespace_map[uri]=prefix
-                register_namespace('vot',xmlns)
-
-        header=[]
-        for field in table.findall('./{%s}FIELD'%(xmlns)):
-            header.append(field.attrib['name'])
-        if(len(header)==0):
-            raise RuntimeError('Unable to find FIELD nodes for table headers in XML table')
-        data=table.findall('./{%s}DATA'%(xmlns))
-        tabledata=data[0].find('./{%s}TABLEDATA'%(xmlns))
-        llines=[]
-        for row in tabledata:
-            llines.append(np.array(map(lambda a:float(a.text),row)))
-        flines=np.array(llines)
-        for i in range(0,len(header)):
-            if header[i].lower().find('log')!=-1 and header[i].lower() not in logParams and re.sub('log', '', header[i].lower()) not in [h.lower() for h in header]:
-                print 'exponentiating %s'%(header[i])
-
-                flines[:,i]=np.exp(flines[:,i])
-
-                header[i]=re.sub('log', '', header[i], flags=re.IGNORECASE)
-            if header[i].lower().find('sin')!=-1 and re.sub('sin', '', header[i].lower()) not in [h.lower() for h in header]:
-                print 'asining %s'%(header[i])
-                flines[:,i]=np.arcsin(flines[:,i])
-                header[i]=re.sub('sin', '', header[i], flags=re.IGNORECASE)
-            if header[i].lower().find('cos')!=-1 and re.sub('cos', '', header[i].lower()) not in [h.lower() for h in header]:
-                print 'acosing %s'%(header[i])
-                flines[:,i]=np.arccos(flines[:,i])
-                header[i]=re.sub('cos', '', header[i], flags=re.IGNORECASE)
-            header[i]=header[i].replace('(','')
-            header[i]=header[i].replace(')','')
-        print 'Read columns %s'%(str(header))
-        return header,flines
-
     def _hdf5_to_pos(self, infile):
         """
         Parse a HDF5 file and return an array of posterior samples ad list of
         parameter names. Equivalent to '_common_to_pos' and work in progress.
         """
+        import h5py
         with h5py.File(infile, 'r') as hdf_file:
             # navigate to the data with plenty of checks
             assert 'lalinference' in hdf_file, repr(list(hdf_file.keys()))
