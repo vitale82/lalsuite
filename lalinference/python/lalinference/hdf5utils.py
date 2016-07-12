@@ -28,7 +28,6 @@ def group_to_ndarray(h5grp,fill_attributes=False):
     import h5py
     # Get the column names
     names=[n.rsplit('/')[-1] for n in h5grp.iterkeys() if isinstance(h5grp[n],h5py.Dataset)]
-    print('Found columns ',names)
     N=len(h5grp[names[0]])
     if any( len(h5grp[n])!=N for n in names ):
         raise RuntimeError("Not all datasets in posterior group are same length")
