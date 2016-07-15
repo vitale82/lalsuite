@@ -56,5 +56,10 @@ def load_chain(h5path,groupname,fill_attributes=True):
     p=bppu.Posterior((params,array(zip(*arr))))
     return p
 
-def load_posterior(h5path):
-    return load_chain(h5path,groupname=lalinference.LALInferenceHDF5PosteriorSamplesGroupName,fill_attributes=True)
+def load_posterior_from_file(filename):
+    """
+    Reads the posterior_samples group from a given file
+    Returns a bppu.Posterior object
+    """
+    with h5py.File(h5path,'r') as h5file:
+        return load_chain(h5file,groupname=lalinference.LALInferenceHDF5PosteriorSamplesGroupName,fill_attributes=True)
