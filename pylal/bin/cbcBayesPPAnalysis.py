@@ -154,9 +154,13 @@ def pp_kstest_pvalue(ps):
 def read_posterior_samples(f,injrow):
     """Returns a bppu posterior sample object
     """
-    peparser=bppu.PEOutputParser('common')
-    commonResultsObj=peparser.parse(open(f,'r'))
-    data = bppu.Posterior(commonResultsObj,SimInspiralTableEntry=injrow,injFref=100.0)
+    # Try to load HDF5 file
+    data = hdf5utils.load_posterior_from_file(opts.data)
+    if not data:
+      # Backward compatibility for old text files
+      peparser=bppu.PEOutputParser('common')
+      commonResultsObj=peparser.parse(open(f,'r'))
+      data = bppu.Posterior(commonResultsObj,SimInspiralTableEntry=injrow,injFref=100.0)
     # add tilts, comp masses, tidal...
     try:
       data.extend_posterior()
