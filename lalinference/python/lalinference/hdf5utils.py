@@ -61,5 +61,6 @@ def load_posterior_from_file(filename):
     Reads the posterior_samples group from a given file
     Returns a bppu.Posterior object
     """
-    with h5py.File(h5path,'r') as h5file:
+    import h5py
+    with h5py.File(filename,'r') as h5file:
         return load_chain(h5file,groupname=lalinference.LALInferenceHDF5PosteriorSamplesGroupName,fill_attributes=True)

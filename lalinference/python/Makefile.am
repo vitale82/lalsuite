@@ -30,6 +30,7 @@ pybin_scripts = \
 	rapidpe_calculate_overlap \
 	imrtgr_imr_consistency_test \
 	lalinference_pipe \
+	cbcBayesPlotSpinDisk \
 	$(END_OF_LIST)
 
 endif

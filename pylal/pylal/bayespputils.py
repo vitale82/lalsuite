@@ -5495,7 +5495,7 @@ class PEOutputParser(object):
     inherited by each method .
     """
     def __init__(self,inputtype):
-        elif inputtype is 'common':
+        if inputtype is 'common':
             self._parser=self._common_to_pos
         elif inputtype is "inf_mcmc":
             self._parser=self._infmcmc_to_pos

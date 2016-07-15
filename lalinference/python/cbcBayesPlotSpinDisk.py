@@ -23,7 +23,7 @@ def make_disk_plot(post,outpath=None):
   try:
     import corner
   except ImportError:
-    print "cannot import corner. Won't plot spin disk"
+    print("cannot import corner. Won't plot spin disk")
     return None
 
   a1='a1'
@@ -37,7 +37,7 @@ def make_disk_plot(post,outpath=None):
     if not i in names:
       allin*=0.0
   if allin==0.0:
-    print "Cannot plot spin disk plot. Not all required spin parameters exist in the posterior file. Skipping...\n"
+    print("Cannot plot spin disk plot. Not all required spin parameters exist in the posterior file. Skipping...\n")
     return None
 
   # Spin disk plot
@@ -101,7 +101,7 @@ USAGE='What this does is : '
 if __name__=='__main__':
   import sys
   from optparse import OptionParser
-  from pylal import bayespputils as bppu
+  from lalinference import hdf5utils
 
   parser=OptionParser(USAGE)
   parser.add_option("-o","--outpath", dest="outpath",default=None, help="make page and plots in DIR", metavar="DIR")
@@ -111,11 +111,17 @@ if __name__=='__main__':
   if opts.outpath is None:
     opts.outpath=os.getcwd()
   if not os.path.isfile(opts.data):
-    print "Cannot find posterior file %s\n"%opts.data
+    print("Cannot find posterior file %s\n"%opts.data)
     sys.exit(1)
-  else:
+  # Try to load HDF5 file
+  pos = hdf5utils.load_posterior_from_file(opts.data)
+  # Backward compatibility for old text files
+  if not pos:
+    from pylal import bayespputils as bppu
     peparser=bppu.PEOutputParser('common')
     commonResultsObj=peparser.parse(open(opts.data,'r'),info=[None,None])
     ps,samps = commonResultsObj
     pos = bppu.Posterior(commonResultsObj)
-    make_disk_plot(pos,opts.outpath)
+  # Make plot
+  make_disk_plot(pos,opts.outpath)
+
