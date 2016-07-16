@@ -758,7 +758,6 @@ class Posterior(object):
         common_output_table_header,common_output_table_raw =commonResultsFormatData
         self._posterior={}
         self._injFref=injFref
-        self._injection=SimInspiralTableEntry
 
         self._triggers=SnglInpiralList
         self._loglaliases=['deltalogl', 'posterior', 'logl','logL','likelihood']
@@ -805,10 +804,8 @@ class Posterior(object):
                             'v1_end_time':lambda inj:float(inj.get_end('V')),
                             'lal_amporder':lambda inj:inj.amp_order}
 
-        # Add on all spin parameterizations
-        for key, val in self._inj_spins(self._injection, frame=inj_spin_frame).items():
-            self._injXMLFuncMap[key] = val
-
+        self.set_injection(SimInspiralTableEntry, spin_frame=inj_spin_frame)
+        
         for one_d_posterior_samples,param_name in zip(np.hsplit(common_output_table_raw,common_output_table_raw.shape[1]),common_output_table_header):
 
             self._posterior[param_name]=PosteriorOneDPDF(param_name.lower(),one_d_posterior_samples,injected_value=self._getinjpar(param_name),injFref=self._injFref,trigger_values=self._gettrigpar(param_name))
@@ -1274,7 +1271,7 @@ class Posterior(object):
             return int(self._total_incl_restarts(samps[:,cycle_col]))
 
     #@injection.setter #Python 2.6+
-    def set_injection(self,injection):
+    def set_injection(self,injection, spin_frame='OrbitalL'):
         """
         Set the injected values of the parameters.
 
@@ -1287,6 +1284,17 @@ class Posterior(object):
                 new_injval=self._getinjpar(name)
                 if new_injval is not None:
                     self[name].set_injval(new_injval)
+        # Add on all spin parameterizations
+        for key, val in self._inj_spins(self._injection, frame=spin_frame).items():
+            self._injXMLFuncMap[key] = val
+        if 'mchirp' in self.names and 'eta' in self.names:
+            try:
+                print 'Inferring m1 and m2 from mchirp and eta'
+                (m1,m2)=mc2ms(self._posterior['mchirp'].samples, self._posterior['eta'].samples)
+                self._posterior['m1']=PosteriorOneDPDF('m1',m1,injected_value=self._getinjpar('m1'),trigger_values=self._gettrigpar('m1'))
+                self._posterior['m2']=PosteriorOneDPDF('m2',m2,injected_value=self._getinjpar('m2'),trigger_values=self._gettrigpar('m2'))
+            except KeyError:
+                print 'Unable to deduce m1 and m2 from input columns'
 
     def set_triggers(self,triggers):
         """
