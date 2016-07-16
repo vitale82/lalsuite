@@ -155,7 +155,9 @@ def read_posterior_samples(f,injrow):
     """Returns a bppu posterior sample object
     """
     # Try to load HDF5 file
-    data = hdf5utils.load_posterior_from_file(opts.data)
+    from lalinference import hdf5utils
+    data = hdf5utils.load_posterior_from_file(f)
+    data.set_injection(injrow)
     if not data:
       # Backward compatibility for old text files
       peparser=bppu.PEOutputParser('common')
