@@ -154,7 +154,10 @@ def read_posterior_samples(f):
     ``f``.
 
     """
-    with open(f, 'r') as inp:
+    from lalinference import hdf5utils
+    data =  hdf5utils.load_posterior_array(f,fill_attributes=True)
+    if not data:
+      with open(f, 'r') as inp:
         header = inp.readline().split()
         dtype = np.dtype([(n, np.float) for n in header])
         data = np.loadtxt(inp, dtype=dtype)
