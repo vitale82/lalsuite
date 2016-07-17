@@ -159,12 +159,13 @@ if __name__ == "__main__":
 
     # Read in ASCII table, assuming column names are the first line
     from lalinference import hdf5utils
-    samples = hdf5utils.load_posterior_array(infilename)
-    if not samples:
-      with open(infilename, 'r') as inp:
-        params = inp.readline().split()
-        standardize_param_names(params)
-        samples = np.loadtxt(inp, dtype=[(p, np.float) for p in params])
+    try:
+      samples = hdf5utils.load_posterior_array(infilename)
+    except:
+	with open(infilename, 'r') as inp:
+	  params = inp.readline().split()
+	  standardize_param_names(params)
+	  samples = np.loadtxt(inp, dtype=[(p, np.float) for p in params])
 
     N = opts.num_of_injs
     if len(samples) < N:
