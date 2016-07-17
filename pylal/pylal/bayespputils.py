@@ -758,6 +758,7 @@ class Posterior(object):
         common_output_table_header,common_output_table_raw =commonResultsFormatData
         self._posterior={}
         self._injFref=injFref
+        self._injection=None
 
         self._triggers=SnglInpiralList
         self._loglaliases=['deltalogl', 'posterior', 'logl','logL','likelihood']
