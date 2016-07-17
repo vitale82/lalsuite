@@ -123,5 +123,6 @@ if __name__=='__main__':
     ps,samps = commonResultsObj
     pos = bppu.Posterior(commonResultsObj)
   # Make plot
+  pos.extend_posterior()
   make_disk_plot(pos,opts.outpath)
 
