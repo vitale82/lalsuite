@@ -43,12 +43,15 @@ if __name__=='__main__':
 
     (opts,args)=parser.parse_args()
 
-    pos_parser=bp.PEOutputParser('common')
+    from lalinference import hdf5utils
+    pos = hdf5utils.load_posterior_from_file(opts.data)
+    if not pos:
+      pos_parser=bp.PEOutputParser('common')
 
-    f=open(opts.data, "r")
-    try:
+      f=open(opts.data, "r")
+      try:
         pos=bp.Posterior(pos_parser.parse(f))
-    finally:
+      finally:
         f.close()
 
     outfile=None
