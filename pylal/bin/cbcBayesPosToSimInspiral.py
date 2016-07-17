@@ -158,7 +158,10 @@ if __name__ == "__main__":
     infilename = get_input_filename(parser, args)
 
     # Read in ASCII table, assuming column names are the first line
-    with open(infilename, 'r') as inp:
+    from lalinference import hdf5utils
+    samples = hdf5utils.load_posterior_array(infilename)
+    if not samples:
+      with open(infilename, 'r') as inp:
         params = inp.readline().split()
         standardize_param_names(params)
         samples = np.loadtxt(inp, dtype=[(p, np.float) for p in params])
